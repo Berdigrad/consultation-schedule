@@ -401,69 +401,95 @@ table.sched td:first-child{min-width:150px;background:var(--td-first-bg)}
   </div>
 </div>
 
+<!-- Modal: импорт учеников из Excel -->
+<div class="overlay" id="m-import">
+  <div class="modal">
+    <h3 id="m-import-title">Загрузить список из Excel</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:.75rem">
+      Файл Excel: первый столбец — Фамилия Имя, второй — класс (9а/9б/9в).<br>
+      Либо один столбец — только ученики выбранного класса.
+    </p>
+    <div class="field">
+      <label>Класс для импорта</label>
+      <select id="f-import-class" style="width:100%"></select>
+    </div>
+    <div class="field">
+      <label>Файл Excel (.xlsx)</label>
+      <input id="f-import-file" type="file" accept=".xlsx,.xls" style="width:100%;padding:6px 0;border:none;background:none">
+    </div>
+    <div id="import-preview" style="font-size:12px;color:var(--muted);margin-top:.5rem;max-height:120px;overflow-y:auto"></div>
+    <div id="import-err" style="font-size:12px;color:#9a3412;margin-top:.5rem;display:none"></div>
+    <div class="modal-actions">
+      <button onclick="closeOverlay('m-import')">Отмена</button>
+      <button id="btn-import-apply" onclick="applyImport()" disabled>✓ Заменить список</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // ===================== DATA =====================
 var STUDENTS = {
   '9А': [
-    {full:'Алексеев Артур',    short:'Алексеев А.'},
-    {full:'Алексеева Валерия', short:'Алексеева В.'},
-    {full:'Вензель Артур',     short:'Вензель А.'},
-    {full:'Данилов Максим',    short:'Данилов М.'},
-    {full:'Данилова Нарыйаана',short:'Данилова Н.'},
-    {full:'Егоров Айтал',      short:'Егоров А.'},
-    {full:'Жиркова Алина',     short:'Жиркова А.'},
-    {full:'Захарова Айсаара',  short:'Захарова А.'},
-    {full:'Иванова Дайаана',   short:'Иванова Д.'},
-    {full:'Ксенофонтов Евгений',short:'Ксенофонтов Е.'},
-    {full:'Кузьмина Инесса',   short:'Кузьмина И.'},
-    {full:'Петрова Амелия',    short:'Петрова А.'},
-    {full:'Попова Айыллаана',  short:'Попова А.'},
-    {full:'Сметанин Александр',short:'Сметанин А.'},
-    {full:'Созонов Николай',   short:'Созонов Н.'},
-    {full:'Степанова Нелли',   short:'Степанова Н.'},
-    {full:'Сыромятникова Валерия',short:'Сыромятникова В.'},
-    {full:'Федоров Сайаан',    short:'Федоров С.'},
-    {full:'Федорова Кристина', short:'Федорова К.'},
-    {full:'Фёдорова Кристина', short:'Фёдорова К.'}
+    {full:'Алексеев Артур',         short:'Алексеев А.'},
+    {full:'Алексеева Валерия',       short:'Алексеева В.'},
+    {full:'Вензель Артур',           short:'Вензель А.'},
+    {full:'Данилов Максим',          short:'Данилов М.'},
+    {full:'Данилова Нарыйаана',      short:'Данилова Н.'},
+    {full:'Егоров Айтал',            short:'Егоров А.'},
+    {full:'Жиркова Алина',           short:'Жиркова А.'},
+    {full:'Захарова Айсаара',        short:'Захарова А.'},
+    {full:'Иванова Дайаана В.',      short:'Иванова Д.'},
+    {full:'Ксенофонтов Евгений',     short:'Ксенофонтов Е.'},
+    {full:'Кузьмина Инесса',         short:'Кузьмина И.'},
+    {full:'Петрова Амелия',          short:'Петрова А.'},
+    {full:'Попова Айыллаана',        short:'Попова А.'},
+    {full:'Сметанин Александр',      short:'Сметанин А.'},
+    {full:'Созонов Николай',         short:'Созонов Н.'},
+    {full:'Степанова Нелли',         short:'Степанова Н.'},
+    {full:'Сыромятникова Валерия',   short:'Сыромятникова В.'},
+    {full:'Федоров Сайаан',          short:'Федоров С.'},
+    {full:'Федорова Кристина В.',    short:'Федорова К.'},
+    {full:'Фёдорова Кристина И.',    short:'Фёдорова К.'}
   ],
   '9Б': [
-    {full:'Антонова Амелия',    short:'Антонова А.'},
-    {full:'Бойков Андрей',      short:'Бойков А.'},
-    {full:'Данилов Константин', short:'Данилов К.'},
-    {full:'Егоров Лев',         short:'Егоров Л.'},
-    {full:'Захаров Герман',     short:'Захаров Г.'},
-    {full:'Иванов Маркел',      short:'Иванов М.'},
-    {full:'Колесов Денис',      short:'Колесов Д.'},
-    {full:'Максимов Лука',      short:'Максимов Л.'},
-    {full:'Матвеев Давид',      short:'Матвеев Д.'},
-    {full:'Никифоров Айгылаан', short:'Никифоров А.'},
-    {full:'Никифорова Моника',  short:'Никифорова М.'},
-    {full:'Оленов Арсентий',    short:'Оленов А.'},
-    {full:'Пахомов Владимир',   short:'Пахомов В.'},
-    {full:'Скрыбыкина Анэля',   short:'Скрыбыкина А.'},
-    {full:'Уломжинский Арсен',  short:'Уломжинский А.'},
-    {full:'Федотова Анжелина',  short:'Федотова А.'},
-    {full:'Федотова Дайаана',   short:'Федотова Д.'}
+    {full:'Антонова Амелия',         short:'Антонова А.'},
+    {full:'Бойков Андрей',           short:'Бойков А.'},
+    {full:'Данилов Константин',      short:'Данилов К.'},
+    {full:'Егоров Лев',              short:'Егоров Л.'},
+    {full:'Захаров Герман',          short:'Захаров Г.'},
+    {full:'Иванов Маркел',           short:'Иванов М.'},
+    {full:'Колесов Денис',           short:'Колесов Д.'},
+    {full:'Максимов Лука',           short:'Максимов Л.'},
+    {full:'Матвеев Давид',           short:'Матвеев Д.'},
+    {full:'Никифоров Айгылаан',      short:'Никифоров А.'},
+    {full:'Никифорова Моника',       short:'Никифорова М.'},
+    {full:'Оленов Арсентий',         short:'Оленов А.'},
+    {full:'Пахомов Владимир',        short:'Пахомов В.'},
+    {full:'Скрыбыкина Анэля В.',     short:'Скрыбыкина А.'},
+    {full:'Уломжинский Арсен',       short:'Уломжинский А.'},
+    {full:'Федотова Анжелина',       short:'Федотова А.'},
+    {full:'Федотова Дайаана',        short:'Федотова Д.'}
   ],
   '9В': [
-    {full:'Алексеев Андриан',   short:'Алексеев А.'},
-    {full:'Алексеева Анастасия',short:'Алексеева Ан.'},
-    {full:'Алексеева Аделина',  short:'Алексеева Ад.'},
-    {full:'Аргунова Ильяна',    short:'Аргунова И.'},
-    {full:'Буц Арина',          short:'Буц А.'},
-    {full:'Васильева Сафина',   short:'Васильева С.'},
-    {full:'Винтоняк Аристарх',  short:'Винтоняк А.'},
-    {full:'Григорьева Кира',    short:'Григорьева К.'},
-    {full:'Колесова Виолетта',  short:'Колесова В.'},
-    {full:'Константинов Марк',  short:'Константинов М.'},
-    {full:'Лаптев Вячеслав',    short:'Лаптев В.'},
-    {full:'Максимова Айталина', short:'Максимова А.'},
-    {full:'Мамаев-Слепцов Эрхан',short:'Мамаев-Слепцов Э.'},
-    {full:'Петров Даниил',      short:'Петров Д.'},
-    {full:'Степанова Айыллаана',short:'Степанова А.'},
-    {full:'Стручкова Александра',short:'Стручкова А.'},
-    {full:'Тимофеев Илсан',     short:'Тимофеев И.'},
-    {full:'Христофоров Сандал', short:'Христофоров С.'}
+    {full:'Алексеев Андриан Пе.',    short:'Алексеев А.'},
+    {full:'Алексеева Аделина Н.',    short:'Алексеева А. (Н.)'},
+    {full:'Алексеева Анастасия Г.',  short:'Алексеева А. (Г.)'},
+    {full:'Аргунова Ильяна',         short:'Аргунова И.'},
+    {full:'Буц Арина Р.',            short:'Буц А.'},
+    {full:'Васильева Сафина',        short:'Васильева С.'},
+    {full:'Винтоняк Аристарх',       short:'Винтоняк А.'},
+    {full:'Григорьева Кира',         short:'Григорьева К.'},
+    {full:'Колесова Виолетта',       short:'Колесова В.'},
+    {full:'Константинов Марк',       short:'Константинов М.'},
+    {full:'Лаптев Вячеслав',         short:'Лаптев В.'},
+    {full:'Максимова Айталина',      short:'Максимова А.'},
+    {full:'Мамаев-Слепцов Эрхан',   short:'Мамаев-Слепцов Э.'},
+    {full:'Петров Даниил',           short:'Петров Д.'},
+    {full:'Степанова Айыллаана',     short:'Степанова А.'},
+    {full:'Стручкова Александра',    short:'Стручкова А.'},
+    {full:'Тимофеев Илсан',          short:'Тимофеев И.'},
+    {full:'Христофоров Сандал',      short:'Христофоров С.'}
   ]
 };
 
@@ -700,9 +726,12 @@ function renderClassPanel(){
   var delBtn = canManageClasses()
     ? '<button class="btn-red" style="font-size:12px" onclick="askDelClass(\''+e(cls.id)+'\',this)">&#128465; Удалить класс</button>'
     : '';
-  p.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">'
+  var importBtn = canManageClasses()
+    ? '<button style="font-size:12px" onclick="openImportModal(\''+e(cls.id)+'\',this)">&#128196; Загрузить из Excel</button>'
+    : '';
+  p.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:6px">'
     +'<div class="sec-title" style="margin:0">Ученики — '+e(cls.name)+' ('+cls.students.length+')</div>'
-    +delBtn
+    +'<div style="display:flex;gap:6px">'+importBtn+delBtn+'</div>'
     +'</div>'
     +'<div class="chips">'+chips+'</div>';
   if(canManageClasses()){
@@ -1302,6 +1331,101 @@ function renderPngItems(ctx,items,x,y,colW,LINE,fontSize,fontFam){
 function drawPngCell(ctx,x,y,w,h,fill,stroke){
   ctx.fillStyle=fill;ctx.fillRect(x,y,w,h);
   ctx.strokeStyle=stroke;ctx.lineWidth=0.5;ctx.strokeRect(x,y,w,h);
+}
+
+// ===================== EXCEL IMPORT =====================
+var _importData = []; // parsed rows ready to apply
+var _importCid = null;
+
+function openImportModal(cid, anchor){
+  _importCid = cid;
+  _importData = [];
+  var cls = S.classes.find(function(c){return c.id===cid;});
+  document.getElementById('m-import-title').textContent = 'Загрузить список — '+(cls?cls.name:'');
+  document.getElementById('import-preview').textContent = '';
+  document.getElementById('import-err').style.display = 'none';
+  document.getElementById('f-import-file').value = '';
+  document.getElementById('btn-import-apply').disabled = true;
+  // Populate class selector
+  var sel = document.getElementById('f-import-class');
+  sel.innerHTML = S.classes.map(function(c){
+    return '<option value="'+e(c.id)+'"'+(c.id===cid?' selected':'')+'>'+e(c.name)+'</option>';
+  }).join('') + '<option value="__all__">Все классы из файла</option>';
+  openOverlay('m-import', anchor);
+  // Listen to file input
+  document.getElementById('f-import-file').onchange = parseImportFile;
+}
+
+function parseImportFile(){
+  var file = document.getElementById('f-import-file').files[0];
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      var data = new Uint8Array(ev.target.result);
+      var wb = XLSX.read(data, {type:'array'});
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      var filterCid = document.getElementById('f-import-class').value;
+      var filterCls = filterCid==='__all__' ? null : S.classes.find(function(c){return c.id===filterCid;});
+
+      // Detect format: 1 col (name only) or 2 cols (name, class)
+      var parsed = {}; // className -> [fullName]
+      S.classes.forEach(function(c){parsed[c.name]=[];});
+
+      rows.forEach(function(row){
+        var col0 = String(row[0]||'').trim();
+        var col1 = String(row[1]||'').trim();
+        if(!col0) return;
+        // If col1 looks like a class name
+        var clsName = col1.replace(/\s/g,'').toUpperCase(); // "9А"
+        var matchedCls = S.classes.find(function(c){return c.name.toUpperCase()===clsName;});
+        if(matchedCls){
+          if(!parsed[matchedCls.name]) parsed[matchedCls.name]=[];
+          parsed[matchedCls.name].push(col0);
+        } else if(filterCls){
+          // Single-column: assign all to selected class
+          parsed[filterCls.name].push(col0);
+        }
+      });
+
+      // Build preview and _importData
+      _importData = parsed;
+      var prevLines = [];
+      Object.keys(parsed).forEach(function(cn){
+        if(parsed[cn].length) prevLines.push(cn+': '+parsed[cn].length+' уч. — '+parsed[cn].slice(0,3).join(', ')+(parsed[cn].length>3?'...':''));
+      });
+      document.getElementById('import-preview').textContent = prevLines.join('\n') || 'Ничего не найдено';
+      document.getElementById('import-err').style.display='none';
+      document.getElementById('btn-import-apply').disabled = prevLines.length===0;
+    } catch(err){
+      document.getElementById('import-err').textContent='Ошибка чтения файла: '+err.message;
+      document.getElementById('import-err').style.display='block';
+      document.getElementById('btn-import-apply').disabled=true;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function applyImport(){
+  if(!_importData) return;
+  pushUndo();
+  Object.keys(_importData).forEach(function(clsName){
+    var names = _importData[clsName];
+    if(!names.length) return;
+    var cls = S.classes.find(function(c){return c.name===clsName;});
+    if(!cls) return;
+    // Update SHORT map with auto-generated short names
+    names.forEach(function(full){
+      if(!SHORT[full]){
+        var parts = full.trim().split(/\s+/);
+        SHORT[full] = parts[0] + (parts[1] ? ' '+parts[1][0]+'.' : '');
+      }
+    });
+    cls.students = names;
+  });
+  closeOverlay('m-import');
+  render();
 }
 
 // ===================== AUTH =====================
