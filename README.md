@@ -2,7 +2,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Расписание консультаций</title>
+<title>Расписание — БСОШа</title>
 <style id="theme-style"></style>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -81,6 +81,12 @@ table.sched td:first-child{min-width:150px;background:var(--td-first-bg)}
 .swatch{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .1s}
 .swatch:hover{transform:scale(1.15)}
 .swatch.active{border-color:var(--text)}
+/* Auth */
+.page-switcher{display:flex;gap:0;margin-bottom:1rem;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;width:fit-content}
+.page-btn{padding:7px 18px;border:none;border-radius:0;background:var(--btn-bg);color:var(--muted);font-size:13px;font-weight:500;border-right:1px solid var(--border);cursor:pointer}
+.page-btn:last-child{border-right:none}
+.page-btn.active{background:var(--accent);color:#fff}
+.page-btn:hover:not(.active){background:var(--btn-hover)}
 /* Auth */
 .role-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border)}
 .role-badge.viewer{background:var(--th-bg);color:var(--muted)}
@@ -199,7 +205,7 @@ table.sched td:first-child{min-width:150px;background:var(--td-first-bg)}
 <body>
 
 <div class="top-bar">
-  <h1>Расписание консультаций <span id="sync-status" style="font-size:12px;font-weight:400;color:var(--muted);margin-left:8px"></span></h1>
+  <h1 id="page-title">Расписание <span id="sync-status" style="font-size:12px;font-weight:400;color:var(--muted);margin-left:8px"></span></h1>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
     <span id="role-badge" class="role-badge viewer">👁 Просмотр</span>
     <button id="btn-login" onclick="openOverlay('m-login',this)" style="font-size:12px">🔑 Войти</button>
@@ -211,20 +217,89 @@ table.sched td:first-child{min-width:150px;background:var(--td-first-bg)}
   </div>
 </div>
 <div class="mobile-btn-bar" id="mobile-btn-bar" style="display:none"></div>
+
+<div class="page-switcher">
+  <button class="page-btn active" id="pbtn-study" onclick="switchPage('study')">📚 Учебное</button>
+  <button class="page-btn" id="pbtn-holiday" onclick="switchPage('holiday')">🏖 Каникулярное</button>
+</div>
+
 <div id="warn-bar" class="warn-bar"></div>
 
-<div class="tabs" id="tabs"></div>
-<div id="class-panel" class="card"></div>
-
+<!-- СТРАНИЦА 1: Учебное расписание -->
+<div id="page-study">
+<div class="tabs" id="tabs-study"></div>
+<div id="class-panel-study" class="card"></div>
 <div class="card">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
-    <div class="sec-title" style="margin:0">Расписание</div>
+    <div class="sec-title" style="margin:0">Учебное расписание консультаций</div>
+    <span id="add-consult-wrap-study"></span>
+  </div>
+  <div id="sched-root-study"></div>
+  <div class="legend">
+    <span class="leg"><span class="dot" style="background:var(--accent)"></span>Назначены ученики</span>
+    <span class="leg"><span class="dot" style="background:#ea580c"></span>Конфликт по времени</span>
+  </div>
+</div>
+</div>
+
+<!-- СТРАНИЦА 2: Каникулярное расписание -->
+<div id="page-holiday" style="display:none">
+<div class="tabs" id="tabs"></div>
+<div id="class-panel" class="card"></div>
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+    <div class="sec-title" style="margin:0">Каникулярное расписание консультаций</div>
     <span id="add-consult-wrap"></span>
   </div>
   <div id="sched-root"></div>
   <div class="legend">
     <span class="leg"><span class="dot" style="background:var(--accent)"></span>Назначены ученики</span>
     <span class="leg"><span class="dot" style="background:#ea580c"></span>Конфликт по времени</span>
+  </div>
+</div>
+</div>
+
+<!-- Modal: учебная консультация -->
+<div class="overlay" id="m-study-consult">
+  <div class="modal">
+    <h3 id="m-study-title">Новая консультация</h3>
+    <div class="field"><label>Предмет</label><input id="sf-subject" type="text" placeholder="Математика"></div>
+    <div class="field"><label>Учитель</label><input id="sf-teacher" type="text" placeholder="Иванова А.Б."></div>
+    <div class="field"><label>День недели</label>
+      <select id="sf-day" style="width:100%">
+        <option value="0">Понедельник</option>
+        <option value="1">Вторник</option>
+        <option value="2">Среда</option>
+        <option value="3">Четверг</option>
+        <option value="4">Пятница</option>
+        <option value="5">Суббота</option>
+      </select>
+    </div>
+    <div class="mrow">
+      <div class="field"><label>Начало</label><input id="sf-ts" type="time" value="13:00"></div>
+      <div class="field"><label>Окончание</label><input id="sf-te" type="time" value="14:00"></div>
+    </div>
+    <div class="modal-actions">
+      <button onclick="closeOverlay('m-study-consult')">Отмена</button>
+      <button onclick="saveStudyConsult()">✓ Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: назначить учеников (учебное) -->
+<div class="overlay" id="m-study-pick">
+  <div class="modal">
+    <h3 id="m-study-pick-title">Назначить учеников</h3>
+    <p id="m-study-pick-sub" style="font-size:12px;color:var(--muted);margin-bottom:.75rem"></p>
+    <div class="pick-all-row">
+      <button onclick="document.querySelectorAll('#ss-pick-list input').forEach(function(c){c.checked=true})">Выбрать всех</button>
+      <button onclick="document.querySelectorAll('#ss-pick-list input').forEach(function(c){c.checked=false})">Снять всех</button>
+    </div>
+    <div class="pick-list" id="ss-pick-list"></div>
+    <div class="modal-actions">
+      <button onclick="closeOverlay('m-study-pick')">Отмена</button>
+      <button onclick="saveStudyPick()">✓ Применить</button>
+    </div>
   </div>
 </div>
 
@@ -499,6 +574,30 @@ Object.keys(STUDENTS).forEach(function(cn){
   STUDENTS[cn].forEach(function(s){ SHORT[s.full]=s.short; });
 });
 function shortName(full){ return SHORT[full]||full; }
+
+// Current active page: 'study' | 'holiday'
+var CURRENT_PAGE = 'study';
+
+var WEEKDAYS = ['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+var WEEKDAY_SHORT = ['Пн','Вт','Ср','Чт','Пт','Сб'];
+
+// SS = Study Schedule state (weekly, no dates)
+var SS = {
+  consults: [],   // {id, subject, teacher, day (0=Пн..5=Сб), ts, te}
+  schedule: {},   // same structure as S.schedule
+  active: 'c1'
+};
+
+function switchPage(page){
+  CURRENT_PAGE = page;
+  document.getElementById('page-study').style.display   = page==='study'   ? '' : 'none';
+  document.getElementById('page-holiday').style.display = page==='holiday' ? '' : 'none';
+  document.getElementById('pbtn-study').classList.toggle('active',   page==='study');
+  document.getElementById('pbtn-holiday').classList.toggle('active', page==='holiday');
+  document.getElementById('page-title').childNodes[0].nodeValue =
+    page==='study' ? 'Учебное расписание ' : 'Каникулярное расписание ';
+  if(page==='study') renderStudy(); else render();
+}
 
 var S = {
   classes: [
@@ -828,6 +927,223 @@ function renderWarn(){
 }
 
 function render(){renderTabs();renderClassPanel();renderSchedule();renderWarn();}
+
+// ===================== STUDY SCHEDULE (weekly, no dates) =====================
+function ssGetAssigned(qid,cid){
+  if(!SS.schedule[qid]) SS.schedule[qid]={};
+  if(!SS.schedule[qid][cid]) SS.schedule[qid][cid]=[];
+  return SS.schedule[qid][cid];
+}
+function ssSetAssigned(qid,cid,arr){
+  if(!SS.schedule[qid]) SS.schedule[qid]={};
+  SS.schedule[qid][cid]=arr;
+}
+function ssAssignLabel(qid,cid){
+  var cls=S.classes.find(function(c){return c.id===cid;});
+  if(!cls||!cls.students.length) return null;
+  var assigned=ssGetAssigned(qid,cid);
+  if(!assigned.length) return null;
+  var total=cls.students.length;
+  var absent=cls.students.filter(function(s){return assigned.indexOf(s)<0;});
+  if(absent.length===0) return cls.name+' — Все';
+  if(assigned.length/total>=0.7) return cls.name+' — Все, кроме '+absent.map(shortName).join(', ');
+  return cls.name+': '+assigned.map(shortName).join(', ');
+}
+
+function renderStudyTabs(){
+  var t=document.getElementById('tabs-study');
+  t.innerHTML='';
+  S.classes.forEach(function(c){
+    var b=document.createElement('button');
+    b.className='tab'+(c.id===SS.active?' active':'');
+    b.textContent=c.name;
+    b.onclick=(function(id){return function(){SS.active=id;renderStudy();};})(c.id);
+    t.appendChild(b);
+  });
+  if(canManageClasses()){
+    var a=document.createElement('button');
+    a.className='tab dashed'; a.textContent='+ Класс';
+    a.onclick=function(){document.getElementById('f-class-name').value='';openOverlay('m-class',a);setTimeout(function(){document.getElementById('f-class-name').focus();},60);};
+    t.appendChild(a);
+  }
+  var wrap=document.getElementById('add-consult-wrap-study');
+  if(wrap) wrap.innerHTML=canEdit()
+    ?'<button onclick="openStudyConsultModal(null,this)">+ Добавить</button>':'';
+}
+
+function renderStudyClassPanel(){
+  var cls=S.classes.find(function(c){return c.id===SS.active;});
+  var p=document.getElementById('class-panel-study');
+  if(!cls){p.innerHTML='<span class="ghost">Нет классов</span>';return;}
+  var chips=cls.students.length===0
+    ?'<span class="ghost">Нет учеников</span>'
+    :cls.students.map(function(s){
+      return '<span class="chip">'+e(shortName(s))+(canManageClasses()?'<button class="chip-x" onclick="removeStudent(\''+e(cls.id)+'\',\''+e(s)+'\')">×</button>':'')+'</span>';
+    }).join('');
+  p.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:6px">'
+    +'<div class="sec-title" style="margin:0">Ученики — '+e(cls.name)+' ('+cls.students.length+')</div>'
+    +(canManageClasses()?'<button style="font-size:12px" onclick="openImportModal(\''+e(cls.id)+'\',this)">📄 Загрузить из Excel</button>':'')
+    +'</div>'
+    +'<div class="chips">'+chips+'</div>';
+  if(canManageClasses()){
+    p.innerHTML+='<div class="row">'
+      +'<input id="inp-s-study" type="text" placeholder="Фамилия Имя" style="flex:1;min-width:140px" onkeydown="if(event.key===\'Enter\')addStudentStudy(\''+e(cls.id)+'\')">'
+      +'<button onclick="addStudentStudy(\''+e(cls.id)+'\')">+ Добавить</button>'
+      +'</div>';
+  }
+}
+function addStudentStudy(cid){
+  var inp=document.getElementById('inp-s-study');
+  var raw=inp.value.trim();
+  if(!raw) return;
+  var cls=S.classes.find(function(c){return c.id===cid;});
+  if(!cls) return;
+  if(!SHORT[raw]){var parts=raw.split(' ');SHORT[raw]=parts[0]+(parts[1]?' '+parts[1][0]+'.':'');}
+  if(cls.students.indexOf(raw)<0){pushUndo();cls.students.push(raw);inp.value='';renderStudy();saveState();}
+}
+
+function renderStudySchedule(){
+  var root=document.getElementById('sched-root-study');
+  var sorted=SS.consults.slice().sort(function(a,b){
+    if(a.day!==b.day) return a.day-b.day;
+    return a.ts<b.ts?-1:1;
+  });
+  if(!sorted.length){root.innerHTML='<p class="ghost">Нет консультаций. Нажмите «+ Добавить».</p>';return;}
+  // Unique time slots
+  var timeSlots=[];
+  sorted.forEach(function(q){
+    var key=q.ts+'|'+q.te;
+    if(!timeSlots.find(function(t){return t.key===key;})) timeSlots.push({key:key,ts:q.ts,te:q.te});
+  });
+  var html='<div class="grid-wrap"><table class="sched"><thead><tr><th>Время / Предмет / Учитель</th>';
+  WEEKDAYS.forEach(function(d,i){html+='<th>'+WEEKDAY_SHORT[i]+'<br>'+d+'</th>';});
+  html+='</tr></thead><tbody>';
+  timeSlots.forEach(function(slot){
+    html+='<tr><td><div class="slot-label">'+slot.ts+' – '+slot.te+'</div>';
+    var combos=[];
+    sorted.filter(function(q){return q.ts===slot.ts&&q.te===slot.te;}).forEach(function(q){
+      var key=q.subject+'|'+(q.teacher||'');
+      if(!combos.find(function(c){return c.key===key;})) combos.push({key:key,subject:q.subject,teacher:q.teacher||''});
+    });
+    combos.forEach(function(c){html+='<div class="slot-sub">'+e(c.subject)+(c.teacher?' · '+e(c.teacher):'')+'</div>';});
+    html+='</td>';
+    for(var di=0;di<6;di++){
+      var dayQ=sorted.filter(function(q){return q.day===di&&q.ts===slot.ts&&q.te===slot.te;});
+      var dow=WEEKDAYS[di];
+      if(!dayQ.length){html+='<td class="empty-cell" data-date="'+e(WEEKDAY_SHORT[di]+' '+dow)+'"><span class="ghost">—</span></td>';continue;}
+      html+='<td data-date="'+e(WEEKDAY_SHORT[di]+' '+dow)+'"><div class="cell-inner">';
+      dayQ.forEach(function(q,qi){
+        var labelsHtml='';
+        S.classes.forEach(function(c){
+          var lbl=ssAssignLabel(q.id,c.id);
+          if(!lbl) return;
+          labelsHtml+='<div class="assign-label">'+e(lbl)+'</div>';
+        });
+        if(qi>0) html+='<div style="height:1px;background:var(--border);margin:4px 0"></div>';
+        html+='<div style="margin-bottom:2px">'
+          +'<div style="font-size:11px;font-weight:600;color:var(--accent);margin-bottom:3px">'+e(q.subject)+(q.teacher?' · <span style="font-weight:400;color:var(--muted)">'+e(q.teacher)+'</span>':'')+'</div>';
+        html+=labelsHtml||'<span class="ghost" style="font-size:11px">Никто не назначен</span>';
+        if(canEdit()){
+          html+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px">'
+            +'<button class="btn-assign" onclick="openStudyPickModal(\''+e(q.id)+'\',this)">+ Назначить</button>'
+            +'<button class="btn-assign" onclick="openStudyConsultModal(\''+e(q.id)+'\',this)">✎</button>'
+            +'<button class="btn-assign btn-red" onclick="deleteStudyConsult(\''+e(q.id)+'\',this)">🗑</button>'
+            +'</div>';
+        }
+        html+='</div>';
+      });
+      html+='</div></td>';
+    }
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  root.innerHTML=html;
+}
+
+function renderStudy(){renderStudyTabs();renderStudyClassPanel();renderStudySchedule();}
+
+// Study consult modal
+function openStudyConsultModal(qid, anchor){
+  SS._editing=qid||null;
+  document.getElementById('m-study-title').textContent=qid?'Редактировать консультацию':'Новая консультация';
+  if(qid){
+    var q=SS.consults.find(function(x){return x.id===qid;});
+    document.getElementById('sf-subject').value=q.subject;
+    document.getElementById('sf-teacher').value=q.teacher||'';
+    document.getElementById('sf-day').value=q.day;
+    document.getElementById('sf-ts').value=q.ts;
+    document.getElementById('sf-te').value=q.te;
+  } else {
+    document.getElementById('sf-subject').value='';
+    document.getElementById('sf-teacher').value='';
+    document.getElementById('sf-day').value='0';
+    document.getElementById('sf-ts').value='13:00';
+    document.getElementById('sf-te').value='14:00';
+  }
+  openOverlay('m-study-consult', anchor);
+  setTimeout(function(){document.getElementById('sf-subject').focus();},60);
+}
+function saveStudyConsult(){
+  var subj=document.getElementById('sf-subject').value.trim();
+  var teacher=document.getElementById('sf-teacher').value.trim();
+  var day=parseInt(document.getElementById('sf-day').value);
+  var ts=document.getElementById('sf-ts').value;
+  var te=document.getElementById('sf-te').value;
+  if(!subj) return;
+  pushUndo();
+  if(SS._editing){
+    var q=SS.consults.find(function(x){return x.id===SS._editing;});
+    if(q){q.subject=subj;q.teacher=teacher;q.day=day;q.ts=ts;q.te=te;}
+  } else {
+    SS.consults.push({id:'sq'+Date.now(),subject:subj,teacher:teacher,day:day,ts:ts,te:te});
+  }
+  closeOverlay('m-study-consult');renderStudy();saveState();
+}
+function deleteStudyConsult(qid){
+  pushUndo();
+  SS.consults=SS.consults.filter(function(q){return q.id!==qid;});
+  delete SS.schedule[qid];
+  renderStudy();saveState();
+}
+
+// Study pick modal
+function openStudyPickModal(qid, anchor){
+  SS._pickQid=qid;
+  var q=SS.consults.find(function(x){return x.id===qid;});
+  document.getElementById('m-study-pick-title').textContent='Назначить учеников';
+  document.getElementById('m-study-pick-sub').textContent=q?q.subject+' · '+WEEKDAYS[q.day]+' '+q.ts+'–'+q.te:'';
+  var html='';
+  S.classes.forEach(function(c){
+    if(!c.students.length) return;
+    var current=ssGetAssigned(qid,c.id);
+    html+='<div class="pick-class-header"><span>'+e(c.name)+'</span>'
+      +'<div style="display:flex;gap:4px">'
+      +'<button onclick="ssPickClass(\''+e(c.id)+'\',true)">Весь '+e(c.name)+'</button>'
+      +'<button onclick="ssPickClass(\''+e(c.id)+'\',false)">Снять</button>'
+      +'</div></div>';
+    c.students.forEach(function(s){
+      var chk=current.indexOf(s)>=0?'checked':'';
+      html+='<label class="pick-item"><input type="checkbox" data-cid="'+e(c.id)+'" value="'+e(s)+'" '+chk+'>'+e(shortName(s))+'</label>';
+    });
+  });
+  document.getElementById('ss-pick-list').innerHTML=html;
+  openOverlay('m-study-pick', anchor);
+}
+function ssPickClass(cid,val){
+  document.querySelectorAll('#ss-pick-list input[data-cid="'+cid+'"]').forEach(function(cb){cb.checked=val;});
+}
+function saveStudyPick(){
+  var qid=SS._pickQid;
+  var map={};
+  document.querySelectorAll('#ss-pick-list input[type=checkbox]').forEach(function(cb){
+    var cid=cb.getAttribute('data-cid');
+    if(!map[cid]) map[cid]=[];
+    if(cb.checked) map[cid].push(cb.value);
+  });
+  pushUndo();
+  Object.keys(map).forEach(function(cid){ssSetAssigned(qid,cid,map[cid]);});
+  closeOverlay('m-study-pick');renderStudy();saveState();
+}
 
 function openOverlay(id, anchorEl){
   var ov=document.getElementById(id);
@@ -1601,6 +1917,8 @@ function saveState(){
     classes:   S.classes,
     consults:  S.consults,
     schedule:  S.schedule,
+    ssConsults: SS.consults,
+    ssSchedule: SS.schedule,
     appear:    getAppearance(),
     passwords: AUTH.passwords
   };
@@ -1635,6 +1953,8 @@ function loadState(callback){
     if(saved && saved.classes  && saved.classes.length)  S.classes  = saved.classes;
     if(saved && saved.consults && saved.consults.length) S.consults = saved.consults;
     if(saved && saved.schedule) S.schedule = saved.schedule;
+    if(saved && saved.ssConsults) SS.consults = saved.ssConsults;
+    if(saved && saved.ssSchedule) SS.schedule = saved.ssSchedule;
     if(saved && saved.appear){
       var a = saved.appear;
       if(a.fontSize  && document.getElementById('sel-size'))   document.getElementById('sel-size').value   = a.fontSize;
@@ -1658,13 +1978,15 @@ setInterval(function(){
   .then(function(r){ return r.json(); })
   .then(function(saved){
     if(!saved) return;
-    var incoming = JSON.stringify({classes:saved.classes,consults:saved.consults,schedule:saved.schedule});
-    var current  = JSON.stringify({classes:S.classes,   consults:S.consults,   schedule:S.schedule});
+    var incoming = JSON.stringify({classes:saved.classes,consults:saved.consults,schedule:saved.schedule,ss:saved.ssConsults,sss:saved.ssSchedule});
+    var current  = JSON.stringify({classes:S.classes,   consults:S.consults,   schedule:S.schedule,   ss:SS.consults,     sss:SS.schedule});
     if(incoming !== current){
       if(saved.classes  && saved.classes.length)  S.classes  = saved.classes;
       if(saved.consults && saved.consults.length) S.consults = saved.consults;
       if(saved.schedule) S.schedule = saved.schedule;
-      _render();
+      if(saved.ssConsults) SS.consults = saved.ssConsults;
+      if(saved.ssSchedule) SS.schedule = saved.ssSchedule;
+      if(CURRENT_PAGE==='study') renderStudy(); else _render();
     }
   }).catch(function(){});
 }, 30000);
@@ -1673,7 +1995,7 @@ setInterval(function(){
 var _render = render;
 render = function(){
   _render();
-  saveState();
+  if(CURRENT_PAGE==='holiday') saveState();
 };
 
 // Also save when appearance changes
@@ -1698,7 +2020,7 @@ try{
 applyRoleUI();
 loadState(function(){
   applyTheme(curTheme);
-  render();
+  switchPage('study');
 });
 window.addEventListener('resize', function(){ updateMobileBtnBar(); updateUndoBtn(); });
 </script>
