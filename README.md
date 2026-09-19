@@ -213,7 +213,7 @@ table.sched td:first-child{min-width:150px;background:var(--td-first-bg)}
     <button onclick="exportPng()" id="btn-export" style="font-size:12px">📷 PNG</button>
     <button id="btn-undo" onclick="doUndo()" style="font-size:12px;display:none" title="Отменить последнее действие">↩ Отмена</button>
     <button id="btn-appear" onclick="openOverlay('m-appear',this)" style="font-size:12px;display:none">⚙</button>
-    <button id="btn-reset" onclick="resetAll()" style="font-size:12px;border-color:#ea580c;color:#9a3412;display:none">↺</button>
+    <button id="btn-reset" onclick="resetAll()" style="font-size:12px;border-color:#ea580c;color:#9a3412;display:none" title="Очистить все консультации">↺ Очистить</button>
   </div>
 </div>
 <div class="mobile-btn-bar" id="mobile-btn-bar" style="display:none"></div>
@@ -1339,8 +1339,10 @@ function saveClass(){
   pushUndo();
   var id='c'+Date.now();
   S.classes.push({id:id,name:name,students:[]});
-  S.active=id;
-  closeOverlay('m-class');render();
+  S.active=id; SS.active=id;
+  closeOverlay('m-class');
+  if(CURRENT_PAGE==='study') renderStudy(); else render();
+  saveState();
 }
 function askDelClass(cid, anchor){
   var cls=S.classes.find(function(c){return c.id===cid;});
@@ -1353,8 +1355,12 @@ function confirmDelClass(){
   var cid=S.pendingDelClass;
   S.classes=S.classes.filter(function(c){return c.id!==cid;});
   Object.keys(S.schedule).forEach(function(qid){if(S.schedule[qid])delete S.schedule[qid][cid];});
+  Object.keys(SS.schedule).forEach(function(qid){if(SS.schedule[qid])delete SS.schedule[qid][cid];});
   S.active=S.classes[0]?S.classes[0].id:'';
-  closeOverlay('m-del-class');render();
+  SS.active=S.active;
+  closeOverlay('m-del-class');
+  if(CURRENT_PAGE==='study') renderStudy(); else render();
+  saveState();
 }
 function askDelConsult(qid, anchor){S.pendingDelConsult=qid;openOverlay('m-del-consult', anchor);}
 function confirmDelConsult(){
@@ -1376,7 +1382,10 @@ function addStudent(cid){
   }
   if(cls.students.indexOf(raw)<0){
     pushUndo();
-    cls.students.push(raw);inp.value='';render();
+    cls.students.push(raw);
+    inp.value='';
+    if(CURRENT_PAGE==='study') renderStudy(); else render();
+    saveState();
   }
 }
 function removeStudent(cid,name){
@@ -1388,7 +1397,12 @@ function removeStudent(cid,name){
     if(S.schedule[qid]&&S.schedule[qid][cid])
       S.schedule[qid][cid]=S.schedule[qid][cid].filter(function(s){return s!==name;});
   });
-  render();
+  Object.keys(SS.schedule).forEach(function(qid){
+    if(SS.schedule[qid]&&SS.schedule[qid][cid])
+      SS.schedule[qid][cid]=SS.schedule[qid][cid].filter(function(s){return s!==name;});
+  });
+  if(CURRENT_PAGE==='study') renderStudy(); else render();
+  saveState();
 }
 
 // ===================== APPEARANCE =====================
@@ -1731,7 +1745,6 @@ function applyImport(){
     if(!names.length) return;
     var cls = S.classes.find(function(c){return c.name===clsName;});
     if(!cls) return;
-    // Update SHORT map with auto-generated short names
     names.forEach(function(full){
       if(!SHORT[full]){
         var parts = full.trim().split(/\s+/);
@@ -1741,7 +1754,8 @@ function applyImport(){
     cls.students = names;
   });
   closeOverlay('m-import');
-  render();
+  if(CURRENT_PAGE==='study') renderStudy(); else render();
+  saveState();
 }
 
 // ===================== AUTH =====================
@@ -2007,8 +2021,14 @@ applyTheme = function(idx){
 
 // Reset button
 function resetAll(){
-  if(!confirm('Сбросить все данные к исходным? Это нельзя отменить.')) return;
-  location.reload();
+  if(!confirm('Очистить ВСЕ консультации и назначения (учебные и каникулярные)?\n\nСписки учеников и классы останутся.\nЭто действие нельзя отменить.')) return;
+  pushUndo();
+  S.consults=[];
+  S.schedule={};
+  SS.consults=[];
+  SS.schedule={};
+  saveState();
+  if(CURRENT_PAGE==='study') renderStudy(); else render();
 }
 
 initSwatches();
