@@ -2,7 +2,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Расписание — БСОШа</title>
+<title>Расписание консультаций</title>
 <style id="theme-style"></style>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -596,7 +596,12 @@ function switchPage(page){
   document.getElementById('pbtn-holiday').classList.toggle('active', page==='holiday');
   document.getElementById('page-title').childNodes[0].nodeValue =
     page==='study' ? 'Учебное расписание ' : 'Каникулярное расписание ';
-  if(page==='study') renderStudy(); else render();
+  if(page==='study'){
+    document.getElementById('warn-bar').style.display='none';
+    renderStudy();
+  } else {
+    render();
+  }
 }
 
 var S = {
@@ -921,7 +926,7 @@ function renderSchedule(){
 function renderWarn(){
   var cf=allConflictStudents(),names=Object.keys(cf);
   var b=document.getElementById('warn-bar');
-  if(!names.length){b.style.display='none';return;}
+  if(!names.length||CURRENT_PAGE!=='holiday'){b.style.display='none';return;}
   b.style.display='block';
   b.innerHTML='⚠️ <strong>Конфликты по времени:</strong> '+names.map(shortName).map(e).join(', ');
 }
