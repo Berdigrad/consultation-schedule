@@ -214,6 +214,7 @@ table.sched td:first-child{min-width:150px;background:var(--td-first-bg)}
     <button id="btn-undo" onclick="doUndo()" style="font-size:12px;display:none" title="Отменить последнее действие">↩ Отмена</button>
     <button id="btn-appear" onclick="openOverlay('m-appear',this)" style="font-size:12px;display:none">⚙</button>
     <button id="btn-reset" onclick="resetAll()" style="font-size:12px;border-color:#ea580c;color:#9a3412;display:none" title="Очистить все консультации">↺ Очистить</button>
+    <button id="btn-backup" onclick="openOverlay('m-backup',this)" style="font-size:12px;display:none">💾 Резервная копия</button>
   </div>
 </div>
 <div class="mobile-btn-bar" id="mobile-btn-bar" style="display:none"></div>
@@ -497,6 +498,33 @@ table.sched td:first-child{min-width:150px;background:var(--td-first-bg)}
     <div class="modal-actions">
       <button onclick="closeOverlay('m-import')">Отмена</button>
       <button id="btn-import-apply" onclick="applyImport()" disabled>✓ Заменить список</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: резервная копия -->
+<div class="overlay" id="m-backup">
+  <div class="modal">
+    <h3>💾 Резервная копия</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:1rem">Сохраните копию расписания в файл и восстановите при необходимости.</p>
+
+    <div style="margin-bottom:1rem">
+      <div class="sec-title">Сохранить копию</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:.5rem">Скачает файл .json с полным расписанием (оба раздела, все классы и ученики).</p>
+      <button onclick="downloadBackup()" style="width:100%">⬇ Скачать резервную копию</button>
+    </div>
+
+    <div>
+      <div class="sec-title">Восстановить из копии</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:.5rem">Загрузите ранее сохранённый .json файл. Текущие данные будут заменены.</p>
+      <input id="f-restore-file" type="file" accept=".json" style="width:100%;margin-bottom:.5rem" onchange="previewRestore()">
+      <div id="restore-preview" style="font-size:12px;color:var(--muted);margin-bottom:.5rem;display:none"></div>
+      <div id="restore-err" style="font-size:12px;color:#9a3412;margin-bottom:.5rem;display:none"></div>
+      <button id="btn-restore-apply" onclick="applyRestore()" disabled style="width:100%;border-color:#ea580c;color:#9a3412">⬆ Восстановить (заменит текущие данные)</button>
+    </div>
+
+    <div class="modal-actions" style="margin-top:1rem">
+      <button onclick="closeOverlay('m-backup')">Закрыть</button>
     </div>
   </div>
 </div>
@@ -1858,6 +1886,7 @@ function applyRoleUI(){
   document.getElementById('btn-login').style.display   = AUTH.role==='viewer'?'':'none';
   document.getElementById('btn-logout').style.display  = AUTH.role==='viewer'?'none':'';
   document.getElementById('btn-reset').style.display   = isZavuch()?'':'none';
+  document.getElementById('btn-backup').style.display  = isZavuch()?'':'none';
   document.getElementById('btn-appear').style.display  = canAppear()?'':'none';
   document.getElementById('btn-undo').style.display    = canEdit()?'':'none';
   updateUndoBtn();
@@ -1880,9 +1909,98 @@ function updateMobileBtnBar(){
   }
   html += '<button onclick="exportPng()" style="font-size:11px;padding:5px 8px">📷 PNG</button>';
   if(canAppear()) html += '<button onclick="openOverlay(\'m-appear\',this)" style="font-size:11px;padding:5px 8px">⚙ Вид</button>';
-  if(isZavuch())  html += '<button onclick="resetAll()" style="font-size:11px;padding:5px 8px;border-color:#ea580c;color:#9a3412">↺ Сброс</button>';
+  if(isZavuch()){
+    html += '<button onclick="resetAll()" style="font-size:11px;padding:5px 8px;border-color:#ea580c;color:#9a3412">↺ Очистить</button>';
+    html += '<button onclick="openOverlay(\'m-backup\',this)" style="font-size:11px;padding:5px 8px">💾 Копия</button>';
+  }
   bar.innerHTML = html;
   updateUndoBtn();
+}
+
+// ===================== BACKUP / RESTORE =====================
+var _restoreData = null;
+
+function downloadBackup(){
+  var data = {
+    _version: 1,
+    _saved: new Date().toLocaleString('ru'),
+    classes:    S.classes,
+    consults:   S.consults,
+    schedule:   S.schedule,
+    ssConsults: SS.consults,
+    ssSchedule: SS.schedule
+  };
+  var json = JSON.stringify(data, null, 2);
+  var blob = new Blob([json], {type:'application/json'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  var d    = new Date();
+  var dateStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  a.download = 'расписание_копия_'+dateStr+'.json';
+  a.href = url;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function previewRestore(){
+  var file = document.getElementById('f-restore-file').files[0];
+  var prev = document.getElementById('restore-preview');
+  var err  = document.getElementById('restore-err');
+  var btn  = document.getElementById('btn-restore-apply');
+  _restoreData = null;
+  btn.disabled = true;
+  prev.style.display = 'none';
+  err.style.display  = 'none';
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    try {
+      var data = JSON.parse(ev.target.result);
+      if(!data.classes || !data.consults) throw new Error('Неверный формат файла');
+      _restoreData = data;
+      var lines = [
+        '📅 Сохранено: '+(data._saved||'неизвестно'),
+        '👥 Классов: '+data.classes.length,
+        '📚 Учебных консультаций: '+(data.ssConsults||[]).length,
+        '🏖 Каникулярных консультаций: '+data.consults.length
+      ];
+      prev.textContent = lines.join('\n');
+      prev.style.display = 'block';
+      btn.disabled = false;
+    } catch(e){
+      err.textContent = 'Ошибка: '+e.message;
+      err.style.display = 'block';
+    }
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function applyRestore(){
+  if(!_restoreData) return;
+  if(!confirm('Восстановить расписание из файла?\n\nТекущие данные будут заменены.')) return;
+  pushUndo();
+  S.classes  = _restoreData.classes  || S.classes;
+  S.consults = _restoreData.consults || [];
+  S.schedule = _restoreData.schedule || {};
+  SS.consults= _restoreData.ssConsults || [];
+  SS.schedule= _restoreData.ssSchedule || {};
+  // Rebuild SHORT map
+  S.classes.forEach(function(c){
+    c.students.forEach(function(full){
+      if(!SHORT[full]){
+        var parts=full.split(' ');
+        SHORT[full]=parts[0]+(parts[1]?' '+parts[1][0]+'.':'');
+      }
+    });
+  });
+  saveState();
+  closeOverlay('m-backup');
+  document.getElementById('f-restore-file').value='';
+  document.getElementById('restore-preview').style.display='none';
+  document.getElementById('btn-restore-apply').disabled=true;
+  _restoreData=null;
+  if(CURRENT_PAGE==='study') renderStudy(); else render();
+  alert('✓ Расписание восстановлено из резервной копии');
 }
 
 // ===================== UNDO HISTORY =====================
