@@ -969,6 +969,18 @@ function renderStudyTabs(){
   var wrap=document.getElementById('add-consult-wrap-study');
   if(wrap) wrap.innerHTML=canEdit()
     ?'<button onclick="openStudyConsultModal(null,this)">+ Добавить</button>':'';
+  // Кнопка паролей для завуча
+  var pw=document.getElementById('btn-passwords-study');
+  if(!pw){
+    pw=document.createElement('button');
+    pw.id='btn-passwords-study';
+    pw.style.cssText='font-size:11px;padding:4px 10px;margin-left:4px';
+    pw.textContent='🔐 Пароли';
+    pw.onclick=function(){openOverlay('m-passwords',pw);};
+    var tabsEl=document.getElementById('tabs-study');
+    tabsEl.parentNode.insertBefore(pw, tabsEl.nextSibling);
+  }
+  pw.style.display=isZavuch()?'inline-flex':'none';
 }
 
 function renderStudyClassPanel(){
@@ -980,9 +992,14 @@ function renderStudyClassPanel(){
     :cls.students.map(function(s){
       return '<span class="chip">'+e(shortName(s))+(canManageClasses()?'<button class="chip-x" onclick="removeStudent(\''+e(cls.id)+'\',\''+e(s)+'\')">×</button>':'')+'</span>';
     }).join('');
+  var btns='';
+  if(canManageClasses()){
+    btns+='<button style="font-size:12px" onclick="openImportModal(\''+e(cls.id)+'\',this)">📄 Загрузить из Excel</button>';
+    btns+='<button class="btn-red" style="font-size:12px" onclick="askDelClass(\''+e(cls.id)+'\',this)">🗑 Удалить класс</button>';
+  }
   p.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:6px">'
     +'<div class="sec-title" style="margin:0">Ученики — '+e(cls.name)+' ('+cls.students.length+')</div>'
-    +(canManageClasses()?'<button style="font-size:12px" onclick="openImportModal(\''+e(cls.id)+'\',this)">📄 Загрузить из Excel</button>':'')
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+btns+'</div>'
     +'</div>'
     +'<div class="chips">'+chips+'</div>';
   if(canManageClasses()){
