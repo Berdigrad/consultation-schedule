@@ -228,7 +228,10 @@ table.sched td:first-child{min-width:150px;background:var(--td-first-bg)}
 
 <!-- СТРАНИЦА 1: Учебное расписание -->
 <div id="page-study">
-<div class="tabs" id="tabs-study"></div>
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
+  <div class="tabs" id="tabs-study" style="margin-bottom:0;flex:1;min-width:0"></div>
+  <button id="btn-passwords-study" onclick="openOverlay('m-passwords',this)" style="font-size:11px;padding:4px 10px;display:none;flex-shrink:0">🔐 Пароли</button>
+</div>
 <div id="class-panel-study" class="card"></div>
 <div class="card">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
@@ -238,14 +241,16 @@ table.sched td:first-child{min-width:150px;background:var(--td-first-bg)}
   <div id="sched-root-study"></div>
   <div class="legend">
     <span class="leg"><span class="dot" style="background:var(--accent)"></span>Назначены ученики</span>
-    <span class="leg"><span class="dot" style="background:#ea580c"></span>Конфликт по времени</span>
   </div>
 </div>
 </div>
 
 <!-- СТРАНИЦА 2: Каникулярное расписание -->
 <div id="page-holiday" style="display:none">
-<div class="tabs" id="tabs"></div>
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
+  <div class="tabs" id="tabs" style="margin-bottom:0;flex:1;min-width:0"></div>
+  <button id="btn-passwords" onclick="openOverlay('m-passwords',this)" style="font-size:11px;padding:4px 10px;display:none;flex-shrink:0">🔐 Пароли</button>
+</div>
 <div id="class-panel" class="card"></div>
 <div class="card">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
@@ -824,18 +829,9 @@ function renderTabs(){
     a.onclick=function(){document.getElementById('f-class-name').value='';openOverlay('m-class',a);setTimeout(function(){document.getElementById('f-class-name').focus();},60);};
     t.appendChild(a);
   }
-  // Завуч: кнопка управления паролями
+  // Завуч: кнопка управления паролями (кнопка уже в HTML, просто показываем/скрываем)
   var pw=document.getElementById('btn-passwords');
-  if(!pw){
-    pw=document.createElement('button');
-    pw.id='btn-passwords';
-    pw.style.cssText='font-size:11px;padding:4px 10px;margin-left:4px';
-    pw.textContent='🔐 Пароли';
-    pw.onclick=function(){openOverlay('m-passwords',pw);};
-    var tabsEl=document.getElementById('tabs');
-    tabsEl.parentNode.insertBefore(pw, tabsEl.nextSibling);
-  }
-  pw.style.display=isZavuch()?'inline-flex':'none';
+  if(pw) pw.style.display=isZavuch()?'inline-flex':'none';
   // Добавить консультацию — только для тех кто может редактировать
   var wrap=document.getElementById('add-consult-wrap');
   if(wrap) wrap.innerHTML=canEdit()
@@ -999,21 +995,16 @@ function renderStudyTabs(){
     a.onclick=function(){document.getElementById('f-class-name').value='';openOverlay('m-class',a);setTimeout(function(){document.getElementById('f-class-name').focus();},60);};
     t.appendChild(a);
   }
+  // Кнопка паролей
+  var pw=document.getElementById('btn-passwords-study');
+  if(pw) pw.style.display=isZavuch()?'inline-flex':'none';
+  // Кнопка добавить консультацию
   var wrap=document.getElementById('add-consult-wrap-study');
   if(wrap) wrap.innerHTML=canEdit()
     ?'<button onclick="openStudyConsultModal(null,this)">+ Добавить</button>':'';
-  // Кнопка паролей для завуча
-  var pw=document.getElementById('btn-passwords-study');
-  if(!pw){
-    pw=document.createElement('button');
-    pw.id='btn-passwords-study';
-    pw.style.cssText='font-size:11px;padding:4px 10px;margin-left:4px';
-    pw.textContent='🔐 Пароли';
-    pw.onclick=function(){openOverlay('m-passwords',pw);};
-    var tabsEl=document.getElementById('tabs-study');
-    tabsEl.parentNode.insertBefore(pw, tabsEl.nextSibling);
-  }
-  pw.style.display=isZavuch()?'inline-flex':'none';
+  // Синхронизируем кнопку паролей в каникулярном тоже
+  var pw2=document.getElementById('btn-passwords');
+  if(pw2) pw2.style.display=isZavuch()?'inline-flex':'none';
 }
 
 function renderStudyClassPanel(){
