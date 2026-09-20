@@ -2021,14 +2021,19 @@ applyTheme = function(idx){
 
 // Reset button
 function resetAll(){
-  if(!confirm('Очистить ВСЕ консультации и назначения (учебные и каникулярные)?\n\nСписки учеников и классы останутся.\nЭто действие нельзя отменить.')) return;
+  var pageName = CURRENT_PAGE==='study' ? 'учебное' : 'каникулярное';
+  if(!confirm('Очистить ВСЕ консультации и назначения ('+pageName+' расписание)?\n\nСписки учеников и классы останутся.\nЭто действие нельзя отменить.')) return;
   pushUndo();
-  S.consults=[];
-  S.schedule={};
-  SS.consults=[];
-  SS.schedule={};
+  if(CURRENT_PAGE==='study'){
+    SS.consults=[];
+    SS.schedule={};
+    renderStudy();
+  } else {
+    S.consults=[];
+    S.schedule={};
+    render();
+  }
   saveState();
-  if(CURRENT_PAGE==='study') renderStudy(); else render();
 }
 
 initSwatches();
