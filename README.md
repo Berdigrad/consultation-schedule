@@ -23,6 +23,8 @@ input:focus,select:focus{border-color:var(--accent)}
 .warn-bar{background:#fde8e0;border:1px solid #ea580c;border-radius:var(--radius);padding:8px 12px;font-size:var(--fs);color:#9a3412;margin-bottom:1rem;display:none}
 /* Tabs */
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem}
+.tabs-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:1rem}
+.tabs-row .tabs{margin-bottom:0;flex:1;min-width:0}
 .tab{padding:5px 13px;border:1px solid var(--border);border-radius:var(--radius);background:var(--btn-bg);color:var(--muted);font-size:var(--fs)}
 .tab.active{color:var(--text);border-color:var(--accent);font-weight:500;background:var(--card-bg)}
 .tab.dashed{border-style:dashed}
@@ -228,9 +230,9 @@ table.sched td:first-child{min-width:150px;background:var(--td-first-bg)}
 
 <!-- СТРАНИЦА 1: Учебное расписание -->
 <div id="page-study">
-<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
-  <div class="tabs" id="tabs-study" style="margin-bottom:0;flex:1;min-width:0"></div>
-  <button id="btn-passwords-study" onclick="openOverlay('m-passwords',this)" style="font-size:11px;padding:4px 10px;display:none;flex-shrink:0">🔐 Пароли</button>
+<div class="tabs-row">
+  <div class="tabs" id="tabs-study"></div>
+  <button id="btn-passwords-study" onclick="openOverlay('m-passwords',this)" style="font-size:11px;padding:4px 10px;display:none;flex-shrink:0;white-space:nowrap">🔐 Пароли</button>
 </div>
 <div id="class-panel-study" class="card"></div>
 <div class="card">
@@ -247,9 +249,9 @@ table.sched td:first-child{min-width:150px;background:var(--td-first-bg)}
 
 <!-- СТРАНИЦА 2: Каникулярное расписание -->
 <div id="page-holiday" style="display:none">
-<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
-  <div class="tabs" id="tabs" style="margin-bottom:0;flex:1;min-width:0"></div>
-  <button id="btn-passwords" onclick="openOverlay('m-passwords',this)" style="font-size:11px;padding:4px 10px;display:none;flex-shrink:0">🔐 Пароли</button>
+<div class="tabs-row">
+  <div class="tabs" id="tabs"></div>
+  <button id="btn-passwords" onclick="openOverlay('m-passwords',this)" style="font-size:11px;padding:4px 10px;display:none;flex-shrink:0;white-space:nowrap">🔐 Пароли</button>
 </div>
 <div id="class-panel" class="card"></div>
 <div class="card">
