@@ -238,7 +238,7 @@ table.sched td:first-child{min-width:150px;background:var(--td-first-bg)}
 <div class="card">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
     <div class="sec-title" style="margin:0">Учебное расписание консультаций</div>
-    <button id="btn-add-study" onclick="openStudyConsultModal(null,this)" style="display:none">+ Добавить</button>
+    <button id="btn-add-study" onclick="openStudyConsultModal(null,this)" style="visibility:hidden">+ Добавить</button>
   </div>
   <div id="sched-root-study"></div>
   <div class="legend">
@@ -257,15 +257,9 @@ table.sched td:first-child{min-width:150px;background:var(--td-first-bg)}
 <div class="card">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
     <div class="sec-title" style="margin:0">Каникулярное расписание консультаций</div>
-    <button id="btn-add-holiday" onclick="openConsultModal(null,this)" style="display:none">+ Добавить консультацию</button>
+    <button id="btn-add-holiday" onclick="openConsultModal(null,this)" style="visibility:hidden">+ Добавить консультацию</button>
   </div>
   <div id="sched-root"></div>
-  <div class="legend">
-    <span class="leg"><span class="dot" style="background:var(--accent)"></span>Назначены ученики</span>
-    <span class="leg"><span class="dot" style="background:#ea580c"></span>Конфликт по времени</span>
-  </div>
-</div>
-</div>
   <div class="legend">
     <span class="leg"><span class="dot" style="background:var(--accent)"></span>Назначены ученики</span>
     <span class="leg"><span class="dot" style="background:#ea580c"></span>Конфликт по времени</span>
@@ -841,6 +835,8 @@ function renderTabs(){
   var pw=document.getElementById('btn-passwords');
   if(pw) pw.style.visibility=isZavuch()?'visible':'hidden';
   // Добавить консультацию — только для тех кто может редактировать
+  var addBtn=document.getElementById('btn-add-holiday');
+  if(addBtn) addBtn.style.visibility=canEdit()?'visible':'hidden';
   var wrap=document.getElementById('add-consult-wrap');
   if(wrap) wrap.innerHTML=canEdit()
     ?'<button onclick="openConsultModal(null,this)">+ Добавить консультацию</button>'
@@ -1008,7 +1004,7 @@ function renderStudyTabs(){
   if(pw) pw.style.visibility=isZavuch()?'visible':'hidden';
   // Кнопка добавить консультацию
   var addBtn=document.getElementById('btn-add-study');
-  if(addBtn) addBtn.style.display=canEdit()?'':'none';
+  if(addBtn) addBtn.style.visibility=canEdit()?'visible':'hidden';
   // Синхронизируем кнопку паролей в каникулярном тоже
   var pw2=document.getElementById('btn-passwords');
   if(pw2) pw2.style.visibility=isZavuch()?'visible':'hidden';
