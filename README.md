@@ -23,8 +23,8 @@ input:focus,select:focus{border-color:var(--accent)}
 .warn-bar{background:#fde8e0;border:1px solid #ea580c;border-radius:var(--radius);padding:8px 12px;font-size:var(--fs);color:#9a3412;margin-bottom:1rem;display:none}
 /* Tabs */
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem}
-.tabs-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:1rem}
-.tabs-row .tabs{margin-bottom:0;flex:1;min-width:0}
+.tabs-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:1rem}
+.tabs-row .tabs{margin-bottom:0;flex:1;min-width:0;flex-wrap:wrap}
 .tab{padding:5px 13px;border:1px solid var(--border);border-radius:var(--radius);background:var(--btn-bg);color:var(--muted);font-size:var(--fs)}
 .tab.active{color:var(--text);border-color:var(--accent);font-weight:500;background:var(--card-bg)}
 .tab.dashed{border-style:dashed}
@@ -153,8 +153,8 @@ table.sched td:first-child{min-width:150px;background:var(--td-first-bg)}
   .top-bar button{font-size:11px;padding:5px 8px}
 
   /* Tabs — горизонтальный скролл */
-  .tabs{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-  .tabs::-webkit-scrollbar{display:none}
+  .tabs:not(.tabs-row .tabs){flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tabs:not(.tabs-row .tabs)::-webkit-scrollbar{display:none}
   .tab{white-space:nowrap;flex-shrink:0}
 
   .card{padding:.75rem}
@@ -831,16 +831,12 @@ function renderTabs(){
     a.onclick=function(){document.getElementById('f-class-name').value='';openOverlay('m-class',a);setTimeout(function(){document.getElementById('f-class-name').focus();},60);};
     t.appendChild(a);
   }
-  // Завуч: кнопка управления паролями (кнопка уже в HTML, просто показываем/скрываем)
+  // Завуч: кнопка управления паролями
   var pw=document.getElementById('btn-passwords');
   if(pw) pw.style.visibility=isZavuch()?'visible':'hidden';
-  // Добавить консультацию — только для тех кто может редактировать
+  // Кнопка добавить консультацию
   var addBtn=document.getElementById('btn-add-holiday');
   if(addBtn) addBtn.style.visibility=canEdit()?'visible':'hidden';
-  var wrap=document.getElementById('add-consult-wrap');
-  if(wrap) wrap.innerHTML=canEdit()
-    ?'<button onclick="openConsultModal(null,this)">+ Добавить консультацию</button>'
-    :'';
 }
 
 function renderClassPanel(){
