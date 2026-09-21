@@ -208,15 +208,15 @@ table.sched td:first-child{min-width:150px;background:var(--td-first-bg)}
 
 <div class="top-bar">
   <h1 id="page-title">Расписание <span id="sync-status" style="font-size:12px;font-weight:400;color:var(--muted);margin-left:8px"></span></h1>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+  <div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center">
     <span id="role-badge" class="role-badge viewer">👁 Просмотр</span>
-    <button id="btn-login" onclick="openOverlay('m-login',this)" style="font-size:12px">🔑 Войти</button>
-    <button id="btn-logout" onclick="doLogout()" style="font-size:12px;display:none">Выйти</button>
-    <button onclick="exportPng()" id="btn-export" style="font-size:12px">📷 PNG</button>
-    <button id="btn-undo" onclick="doUndo()" style="font-size:12px;display:none" title="Отменить последнее действие">↩ Отмена</button>
-    <button id="btn-appear" onclick="openOverlay('m-appear',this)" style="font-size:12px;display:none">⚙</button>
-    <button id="btn-reset" onclick="resetAll()" style="font-size:12px;border-color:#ea580c;color:#9a3412;display:none" title="Очистить все консультации">↺ Очистить</button>
-    <button id="btn-backup" onclick="openOverlay('m-backup',this)" style="font-size:12px;display:none">💾 Резервная копия</button>
+    <button id="btn-login" onclick="openOverlay('m-login',this)" style="font-size:12px;white-space:nowrap">🔑 Войти</button>
+    <button id="btn-logout" onclick="doLogout()" style="font-size:12px;display:none;white-space:nowrap">Выйти</button>
+    <button onclick="exportPng()" id="btn-export" style="font-size:12px" title="Сохранить как картинку">📷</button>
+    <button id="btn-undo" onclick="doUndo()" style="font-size:12px;display:none" title="Отменить последнее действие">↩</button>
+    <button id="btn-appear" onclick="openOverlay('m-appear',this)" style="font-size:12px;display:none" title="Оформление">⚙</button>
+    <button id="btn-reset" onclick="resetAll()" style="font-size:12px;border-color:#ea580c;color:#9a3412;display:none" title="Очистить расписание">↺</button>
+    <button id="btn-backup" onclick="openOverlay('m-backup',this)" style="font-size:12px;display:none" title="Резервная копия">💾</button>
   </div>
 </div>
 <div class="mobile-btn-bar" id="mobile-btn-bar" style="display:none"></div>
