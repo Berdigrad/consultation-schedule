@@ -236,9 +236,9 @@ table.sched td:first-child{min-width:150px;background:var(--td-first-bg)}
 </div>
 <div id="class-panel-study" class="card"></div>
 <div class="card">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
-    <div class="sec-title" style="margin:0">Учебное расписание консультаций</div>
-    <button id="btn-add-study" onclick="openStudyConsultModal(null,this)" style="visibility:hidden">+ Добавить</button>
+  <div style="margin-bottom:.75rem">
+    <div class="sec-title">Учебное расписание консультаций</div>
+    <button id="btn-add-study" onclick="openStudyConsultModal(null,this)" style="visibility:hidden;font-size:13px;margin-top:.5rem">+ Добавить консультацию</button>
   </div>
   <div id="sched-root-study"></div>
   <div class="legend">
@@ -255,9 +255,9 @@ table.sched td:first-child{min-width:150px;background:var(--td-first-bg)}
 </div>
 <div id="class-panel" class="card"></div>
 <div class="card">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
-    <div class="sec-title" style="margin:0">Каникулярное расписание консультаций</div>
-    <button id="btn-add-holiday" onclick="openConsultModal(null,this)" style="visibility:hidden">+ Добавить консультацию</button>
+  <div style="margin-bottom:.75rem">
+    <div class="sec-title">Каникулярное расписание консультаций</div>
+    <button id="btn-add-holiday" onclick="openConsultModal(null,this)" style="visibility:hidden;font-size:13px;margin-top:.5rem">+ Добавить консультацию</button>
   </div>
   <div id="sched-root"></div>
   <div class="legend">
