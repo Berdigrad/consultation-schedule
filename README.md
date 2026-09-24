@@ -1520,20 +1520,48 @@ function exportPng(){
 
 function doExportPng(){
   var btn=document.getElementById('btn-export');
-  var sorted=S.consults.slice().sort(function(a,b){
-    if(a.date!==b.date)return a.date<b.date?-1:1;
-    return a.ts<b.ts?-1:1;
-  });
-  var dates=[];
-  sorted.forEach(function(q){if(dates.indexOf(q.date)<0)dates.push(q.date);});
-  if(!dates.length){btn.textContent='📷 Поделиться (PNG)';btn.disabled=false;alert('Нет консультаций для экспорта');return;}
+  var isStudy = CURRENT_PAGE==='study';
+
+  // ---- данные в зависимости от страницы ----
+  var sorted, cols, getAssignedFn, assignLabelFn, conflictPairs;
+  if(isStudy){
+    sorted=SS.consults.slice().sort(function(a,b){
+      if(a.day!==b.day) return a.day-b.day;
+      return a.ts<b.ts?-1:1;
+    });
+    cols=WEEKDAYS.map(function(d,i){return {label:WEEKDAY_SHORT[i]+' '+d, key:i};});
+    // убираем пустые дни
+    var usedDays={};
+    sorted.forEach(function(q){usedDays[q.day]=true;});
+    cols=cols.filter(function(c){return usedDays[c.key];});
+    getAssignedFn=function(qid,cid){return ssGetAssigned(qid,cid);};
+    assignLabelFn=function(qid,cid){return ssAssignLabel(qid,cid);};
+    conflictPairs={};
+  } else {
+    sorted=S.consults.slice().sort(function(a,b){
+      if(a.date!==b.date)return a.date<b.date?-1:1;
+      return a.ts<b.ts?-1:1;
+    });
+    var dates=[];
+    sorted.forEach(function(q){if(dates.indexOf(q.date)<0)dates.push(q.date);});
+    cols=dates.map(function(d){
+      return {label:DAYS[(new Date(d).getDay()+6)%7]+' '+formatDateFull(d), key:d};
+    });
+    getAssignedFn=function(qid,cid){return getAssigned(qid,cid);};
+    assignLabelFn=function(qid,cid){return assignLabel(qid,cid);};
+    conflictPairs=buildConflictPairs();
+  }
+
+  if(!sorted.length||!cols.length){
+    btn.textContent='📷';btn.disabled=false;
+    alert('Нет консультаций для экспорта');return;
+  }
 
   var timeSlots=[];
   sorted.forEach(function(q){
     var key=q.ts+'|'+q.te;
     if(!timeSlots.find(function(t){return t.key===key;}))timeSlots.push({key:key,ts:q.ts,te:q.te});
   });
-  var conflictPairs=buildConflictPairs();
 
   var cs=getComputedStyle(document.body);
   var cBg=cs.backgroundColor||'#f4f4f2';
@@ -1548,39 +1576,37 @@ function doExportPng(){
 
   var DPR=2, PAD=20, ROWPAD=10, LINE=fontSize+5;
   var COL0=190, COLW=210;
-  var numCols=dates.length;
-  var totalW=PAD*2+COL0+COLW*numCols;
+  var totalW=PAD*2+COL0+COLW*cols.length;
 
-  // Measure canvas (dummy) for text width
   var dummy=document.createElement('canvas');
   var dctx=dummy.getContext('2d');
   function measureLines(text, maxW, fnt){
     dctx.font=fnt;
-    var words=text.split(' ');
-    var lines=[], cur='';
+    var words=text.split(' '), lines=[], cur='';
     words.forEach(function(w){
       var test=cur?cur+' '+w:w;
-      if(dctx.measureText(test).width>maxW-16 && cur){lines.push(cur);cur=w;}
+      if(dctx.measureText(test).width>maxW-16&&cur){lines.push(cur);cur=w;}
       else cur=test;
     });
     if(cur)lines.push(cur);
     return lines.length?lines:[''];
   }
 
-  // Build cell data: array of {text,color,bold,small}
-  function buildCellData(slot, d){
-    var dayQ=sorted.filter(function(x){return x.date===d&&x.ts===slot.ts&&x.te===slot.te;});
+  function buildCellData(slot, colKey){
+    var dayQ=isStudy
+      ? sorted.filter(function(x){return x.day===colKey&&x.ts===slot.ts&&x.te===slot.te;})
+      : sorted.filter(function(x){return x.date===colKey&&x.ts===slot.ts&&x.te===slot.te;});
     if(!dayQ.length)return [{text:'—',color:cMuted,bold:false,small:true}];
     var rows=[];
-    dayQ.forEach(function(q, qi){
+    dayQ.forEach(function(q,qi){
       if(qi>0) rows.push({text:'',color:cMuted,bold:false,small:false,divider:true});
       if(dayQ.length>1) rows.push({text:q.subject+(q.teacher?' · '+q.teacher:''),color:cMuted,bold:true,small:true});
       var hasAny=false;
       S.classes.forEach(function(c){
-        var lbl=assignLabel(q.id,c.id);
+        var lbl=assignLabelFn(q.id,c.id);
         if(!lbl)return;
         hasAny=true;
-        var hasConf=getAssigned(q.id,c.id).some(function(n){return conflictPairs[q.id+'|'+n];});
+        var hasConf=getAssignedFn(q.id,c.id).some(function(n){return conflictPairs[q.id+'|'+n];});
         rows.push({text:lbl,color:hasConf?'#9a3412':cText,bold:false,small:false});
       });
       if(!hasAny) rows.push({text:'Никто не назначен',color:cMuted,bold:false,small:true});
@@ -1597,8 +1623,6 @@ function doExportPng(){
     combos.forEach(function(c){rows.push({text:c.text,color:cMuted,bold:false,small:true});});
     return rows;
   }
-
-  // Count lines for each row
   function countLines(items, colW){
     var total=0;
     items.forEach(function(item){
@@ -1612,68 +1636,52 @@ function doExportPng(){
   var HEADER_H=50;
   var rowHeights=timeSlots.map(function(slot){
     var max=countLines(buildHeaderData(slot),COL0);
-    dates.forEach(function(d){
-      var n=countLines(buildCellData(slot,d),COLW);
+    cols.forEach(function(col){
+      var n=countLines(buildCellData(slot,col.key),COLW);
       if(n>max)max=n;
     });
     return ROWPAD*2+Math.ceil(max)*LINE+4;
   });
-
   var totalH=PAD*2+30+HEADER_H+rowHeights.reduce(function(a,b){return a+b;},0)+PAD;
 
   var canvas=document.createElement('canvas');
-  canvas.width=totalW*DPR;
-  canvas.height=totalH*DPR;
+  canvas.width=totalW*DPR; canvas.height=totalH*DPR;
   var ctx=canvas.getContext('2d');
   ctx.scale(DPR,DPR);
-
-  // BG
-  ctx.fillStyle=cBg;ctx.fillRect(0,0,totalW,totalH);
-  // Card
+  ctx.fillStyle=cBg; ctx.fillRect(0,0,totalW,totalH);
   ctx.fillStyle=cCard;
   ctx.beginPath();ctx.roundRect(PAD,PAD,totalW-PAD*2,totalH-PAD*2,10);ctx.fill();
-
-  // Title
-  ctx.fillStyle=cText;
-  ctx.font='600 15px '+fontFam;
-  ctx.fillText('Расписание консультаций',PAD+14,PAD+20);
+  ctx.fillStyle=cText; ctx.font='600 15px '+fontFam;
+  ctx.fillText(isStudy?'Учебное расписание консультаций':'Каникулярное расписание консультаций',PAD+14,PAD+20);
 
   var tX=PAD+10, tY=PAD+30;
-
-  // Header row
   drawPngCell(ctx,tX,tY,COL0,HEADER_H,cTh,cBorder);
-  ctx.fillStyle=cMuted;ctx.font='500 '+(fontSize-1)+'px '+fontFam;
+  ctx.fillStyle=cMuted; ctx.font='500 '+(fontSize-1)+'px '+fontFam;
   ctx.fillText('Время / Предмет / Учитель',tX+8,tY+HEADER_H/2+5);
-  dates.forEach(function(d,i){
+  cols.forEach(function(col,i){
     var x=tX+COL0+i*COLW;
     drawPngCell(ctx,x,tY,COLW,HEADER_H,cTh,cBorder);
-    var dow=DAYS[(new Date(d).getDay()+6)%7];
-    ctx.fillStyle=cMuted;ctx.font='600 '+(fontSize-1)+'px '+fontFam;
-    ctx.fillText(dow+' '+formatDateFull(d),x+8,tY+HEADER_H/2+5);
+    ctx.fillStyle=cMuted; ctx.font='600 '+(fontSize-1)+'px '+fontFam;
+    ctx.fillText(col.label,x+8,tY+HEADER_H/2+5);
   });
 
-  // Data rows
   var rowY=tY+HEADER_H;
   timeSlots.forEach(function(slot,ri){
     var rh=rowHeights[ri];
-    // Header cell
     drawPngCell(ctx,tX,rowY,COL0,rh,cTdF,cBorder);
     renderPngItems(ctx,buildHeaderData(slot),tX+8,rowY+ROWPAD,COL0,LINE,fontSize,fontFam);
-    // Date cells
-    dates.forEach(function(d,ci){
+    cols.forEach(function(col,ci){
       var x=tX+COL0+ci*COLW;
       drawPngCell(ctx,x,rowY,COLW,rh,cCard,cBorder);
-      renderPngItems(ctx,buildCellData(slot,d),x+8,rowY+ROWPAD,COLW,LINE,fontSize,fontFam);
+      renderPngItems(ctx,buildCellData(slot,col.key),x+8,rowY+ROWPAD,COLW,LINE,fontSize,fontFam);
     });
     rowY+=rh;
   });
 
-  btn.textContent='📷 Поделиться (PNG)';
-  btn.disabled=false;
+  btn.textContent='📷'; btn.disabled=false;
+  var fname=isStudy?'учебное_расписание.png':'каникулярное_расписание.png';
   var link=document.createElement('a');
-  link.download='расписание_консультаций.png';
-  link.href=canvas.toDataURL('image/png');
-  link.click();
+  link.download=fname; link.href=canvas.toDataURL('image/png'); link.click();
 }
 
 function renderPngItems(ctx,items,x,y,colW,LINE,fontSize,fontFam){
